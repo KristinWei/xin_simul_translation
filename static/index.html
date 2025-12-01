@@ -1,292 +1,382 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Youdao Real-time Speech Translation</title>
+  <meta charset="UTF-8">
+  <title>XINFO Realtime Speech Translation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
   <style>
+    :root {
+      --bg: #0f172a;
+      --panel-bg: #1e293b;
+      --border: #334155;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+
+      /* Premium UI colors */
+      --blue-strong: #3b82f6;
+      --blue-light: #60a5fa;
+      --pink-strong: #ec4899;
+      --pink-light: #f472b6;
+
+      --accent-input: #38bdf8;
+      --accent-output: #a78bfa;
+    }
+
     body {
-      background: #0f172a;
-      color: #e2e8f0;
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
       margin: 0;
-      padding: 25px;
+      padding: 0;
     }
 
-    h1 {
-      text-align: center;
-      margin-top: 0;
-      margin-bottom: 30px;
-      font-size: 28px;
-      font-weight: 700;
-      color: #f8fafc;
-    }
-
-    .container {
-      max-width: 1200px;
+    .page {
+      max-width: 900px;
       margin: auto;
+      padding: 16px;
     }
 
-    .controls {
+    /* HEADER BAR */
+    .header-bar {
       display: flex;
-      justify-content: center;
+      align-items: center;
       gap: 12px;
-      margin-bottom: 25px;
+      padding: 12px 18px;
+      background: rgba(15,23,42,0.8);
+      border-bottom: 1px solid #1e293b;
+      position: sticky;
+      top: 0;
+      z-index: 20;
     }
 
-    button {
-      padding: 12px 22px;
-      border: none;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    #startBtn { background: #16a34a; color: white; }
-    #startBtn:hover { background: #15803d; }
-
-    #stopBtn { background: #ef4444; color: white; }
-    #stopBtn:hover { background: #dc2626; }
-
-    .status-bar {
-      text-align: center;
-      margin-bottom: 20px;
-      opacity: 0.8;
-    }
-
-    .panels {
-      display: flex;
-      gap: 20px;
-      justify-content: space-between;
-    }
-
-    .panel {
-      flex: 1;
-      border: 1px solid #1e293b;
-      background: #1e293b;
+    .logo {
+      width: 48px;
+      height: 48px;
       border-radius: 10px;
-      padding: 15px;
-      height: 480px;
+      overflow: hidden;
+      background: white;
+    }
+
+    .logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .brand-text {
       display: flex;
       flex-direction: column;
     }
 
-    .panel-title {
+    .brand-title {
       font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: #f1f5f9;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .brand-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* MAIN TITLE */
+    .main-title {
       text-align: center;
+      font-size: 28px;
+      font-weight: 700;
+      margin: 22px 0 26px;
+      letter-spacing: 0.02em;
+    }
+
+    /* BUTTONS */
+    .button-row {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 14px 36px;
+      border: none;
+      border-radius: 18px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.18s ease;
+      min-width: 150px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    #startBtn {
+      background: linear-gradient(135deg, var(--blue-strong), var(--blue-light));
+      color: white;
+      box-shadow: 0 4px 12px rgba(59,130,246,0.45);
+    }
+    #startBtn:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 7px 20px rgba(59,130,246,0.6);
+    }
+
+    #startBtn:disabled {
+      background: #6ea8ff;
+      opacity: 0.5;
+      box-shadow: none;
+      transform: none;
+    }
+
+    #stopBtn {
+      background: linear-gradient(135deg, var(--pink-strong), var(--pink-light));
+      color: white;
+      box-shadow: 0 4px 12px rgba(236,72,153,0.45);
+    }
+    #stopBtn:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 7px 20px rgba(236,72,153,0.6);
+    }
+    #stopBtn:disabled {
+      background: #ff9fd0;
+      opacity: 0.5;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* MICROPHONE INDICATOR */
+    .mic-indicator {
+      text-align: center;
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      height: 22px;
+    }
+
+    .mic-live {
+      color: var(--blue-light);
+      font-weight: 600;
+      animation: pulse 1.4s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.35; }
+      50% { opacity: 1; }
+      100% { opacity: 0.35; }
+    }
+
+    /* PANELS */
+    .panels-wrapper {
+      display: flex;
+      justify-content: center;
+    }
+
+    .panels {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      max-width: 780px;
+    }
+
+    @media (min-width: 700px) {
+      .panels { flex-direction: row; }
+    }
+
+    .panel {
+      flex: 1;
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      height: 42vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @media (min-width: 700px) {
+      .panel { height: 60vh; }
+    }
+
+    .panel-title {
+      text-align: center;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
     }
 
     .content-area {
       flex: 1;
       overflow-y: auto;
       white-space: pre-wrap;
-      line-height: 1.55;
-      font-size: 16px;
+      font-size: 15px;
+      line-height: 1.5;
     }
 
-    /* Partial preview (gray, italic) */
-    .preview-line {
-      color: #94a3b8;
-      font-style: italic;
-      margin-bottom: 10px;
-    }
-
-    /* Final input transcript */
-    .final-input {
+    .text-block {
       padding: 8px 10px;
-      margin-bottom: 10px;
-      background: #1e293b;
-      border-left: 4px solid #38bdf8;
+      margin-bottom: 6px;
+      background: rgba(15,23,42,0.9);
       border-radius: 6px;
+      opacity: 0;
+      animation: fadeIn 0.25s forwards;
     }
 
-    /* Final output translation */
-    .final-output {
-      padding: 8px 10px;
-      margin-bottom: 10px;
-      background: #1e293b;
-      border-left: 4px solid #a78bfa;
-      border-radius: 6px;
+    .input-block { border-left: 3px solid var(--accent-input); }
+    .output-block { border-left: 3px solid var(--accent-output); }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(2px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <h1>🎧 Real-Time Speech Translation</h1>
 
-    <div class="controls">
+  <!-- HEADER -->
+  <div class="header-bar">
+    <div class="logo"><img src="/static/logo.png"></div>
+    <div class="brand-text">
+      <div class="brand-title">XINFO CONSULTING</div>
+      <div class="brand-sub">Realtime AI Tools</div>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <!-- TITLE -->
+    <div class="main-title">Realtime Speech Translation</div>
+
+    <!-- BUTTONS -->
+    <div class="button-row">
       <button id="startBtn">Start</button>
       <button id="stopBtn" disabled>Stop</button>
     </div>
 
-    <div class="status-bar" id="micStatus">Microphone: ⏹ Idle</div>
+    <!-- MICROPHONE INDICATOR -->
+    <div id="micIndicator" class="mic-indicator">⏹ Microphone inactive</div>
 
-    <div class="panels">
-      <!-- INPUT PANEL -->
-      <div class="panel">
-        <div class="panel-title">🎙️ Input Language</div>
-        <div id="inputArea" class="content-area"></div>
-      </div>
+    <!-- PANELS -->
+    <div class="panels-wrapper">
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-title">🎙 Input Transcript</div>
+          <div id="inputArea" class="content-area"></div>
+        </div>
 
-      <!-- OUTPUT PANEL -->
-      <div class="panel">
-        <div class="panel-title">🌐 Translation</div>
-        <div id="outputArea" class="content-area"></div>
+        <div class="panel">
+          <div class="panel-title">🌐 Translation</div>
+          <div id="outputArea" class="content-area"></div>
+        </div>
       </div>
     </div>
 
-    <div class="status-bar" id="statusText">Status: Idle</div>
   </div>
+
 
 <script>
   const startBtn = document.getElementById("startBtn");
   const stopBtn = document.getElementById("stopBtn");
+  const micIndicator = document.getElementById("micIndicator");
   const inputArea = document.getElementById("inputArea");
   const outputArea = document.getElementById("outputArea");
-  const statusText = document.getElementById("statusText");
-  const micStatus = document.getElementById("micStatus");
 
-  let ws = null;
-  let audioContext = null;
-  let mediaStream = null;
-  let processor = null;
+  let ws, audioContext, processor, mediaStream;
+  let previewInput = null, previewOutput = null;
+  let currentInputLine = null, currentOutputLine = null;
 
-  // Preview DOM nodes
-  let previewInput = null;
-  let previewOutput = null;
+  let lastFinal = Date.now();
+  const pauseThreshold = 1200;
 
-  // Merged line DOM nodes
-  let currentInputLine = null;
-  let currentOutputLine = null;
-
-  // Pause-based segmentation
-  let lastFinalTime = Date.now();
-  let pauseThreshold = 1200; // 1.2s pause → new line
-
-  function logStatus(msg) {
-    statusText.textContent = "Status: " + msg;
-    console.log(msg);
+  function addBlock(area, text, isInput) {
+    const div = document.createElement("div");
+    div.className = "text-block " + (isInput ? "input-block" : "output-block");
+    div.textContent = text;
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+    return div;
   }
 
-  // ---------- PARTIAL PREVIEW ----------
   function updatePreview(ctx, tran) {
-    if (!previewInput) {
-      previewInput = document.createElement("div");
-      previewInput.className = "preview-line";
-      inputArea.appendChild(previewInput);
-    }
-    if (!previewOutput) {
-      previewOutput = document.createElement("div");
-      previewOutput.className = "preview-line";
-      outputArea.appendChild(previewOutput);
-    }
+    if (!previewInput) previewInput = addBlock(inputArea, ctx, true);
+    else previewInput.textContent = ctx;
 
-    previewInput.textContent = ctx;
-    previewOutput.textContent = tran;
-
-    inputArea.scrollTop = inputArea.scrollHeight;
-    outputArea.scrollTop = outputArea.scrollHeight;
+    if (!previewOutput) previewOutput = addBlock(outputArea, tran, false);
+    else previewOutput.textContent = tran;
   }
 
-  // ---------- FINAL MERGED SENTENCE HANDLER ----------
-  function addFinalMerged(ctx, tran, newLine) {
-    // Remove preview lines
+  function addFinalLine(ctx, tran, newLine) {
     if (previewInput) previewInput.remove();
     if (previewOutput) previewOutput.remove();
-    previewInput = null;
-    previewOutput = null;
+    previewInput = previewOutput = null;
 
-    // ----- INPUT PANEL -----
     if (ctx) {
-      if (!currentInputLine || newLine) {
-        currentInputLine = document.createElement("div");
-        currentInputLine.className = "final-input";
-        inputArea.appendChild(currentInputLine);
-      }
-      currentInputLine.textContent +=
-        (currentInputLine.textContent ? " " : "") + ctx;
+      if (!currentInputLine || newLine)
+        currentInputLine = addBlock(inputArea, ctx, true);
+      else currentInputLine.textContent += " " + ctx;
     }
 
-    // ----- OUTPUT PANEL -----
     if (tran) {
-      if (!currentOutputLine || newLine) {
-        currentOutputLine = document.createElement("div");
-        currentOutputLine.className = "final-output";
-        outputArea.appendChild(currentOutputLine);
-      }
-      currentOutputLine.textContent +=
-        (currentOutputLine.textContent ? " " : "") + tran;
+      if (!currentOutputLine || newLine)
+        currentOutputLine = addBlock(outputArea, tran, false);
+      else currentOutputLine.textContent += " " + tran;
     }
-
-    inputArea.scrollTop = inputArea.scrollHeight;
-    outputArea.scrollTop = outputArea.scrollHeight;
   }
 
-  // ---------- AUDIO PROCESSING (same as before) ----------
-  function downsampleBuffer(buffer, inputSampleRate, outSampleRate) {
-    const ratio = inputSampleRate / outSampleRate;
+  function downsample(buffer, inputRate, outputRate) {
+    const ratio = inputRate / outputRate;
     const newLength = Math.round(buffer.length / ratio);
-    const result = new Float32Array(newLength);
+    const out = new Float32Array(newLength);
     let offset = 0;
 
     for (let i = 0; i < newLength; i++) {
-      const nextOffset = Math.round((i + 1) * ratio);
-      let sum = 0;
-      let count = 0;
-      for (let j = offset; j < nextOffset && j < buffer.length; j++) {
-        sum += buffer[j];
-        count++;
+      const next = Math.round((i + 1) * ratio);
+      let sum = 0, count = 0;
+      for (let j = offset; j < next && j < buffer.length; j++) {
+        sum += buffer[j]; count++;
       }
-      result[i] = count > 0 ? sum / count : 0;
-      offset = nextOffset;
+      out[i] = sum / count;
+      offset = next;
     }
-    return result;
+    return out;
   }
 
-  function convertFloat32ToInt16(buffer) {
-    const out = new Int16Array(buffer.length);
-    for (let i = 0; i < buffer.length; i++) {
-      let s = Math.max(-1, Math.min(1, buffer[i]));
+  function toInt16(f32) {
+    const out = new Int16Array(f32.length);
+    for (let i = 0; i < f32.length; i++) {
+      let s = Math.max(-1, Math.min(1, f32[i]));
       out[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
     }
     return out;
   }
 
-  // ---------- START ----------
   async function start() {
+    // reset content
     inputArea.innerHTML = "";
     outputArea.innerHTML = "";
-    previewInput = null;
-    previewOutput = null;
-    currentInputLine = null;
-    currentOutputLine = null;
+    previewInput = previewOutput = null;
+    currentInputLine = currentOutputLine = null;
 
-    const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
-    ws = new WebSocket(`${wsProtocol}//${location.host}/ws/translate`);
+    const proto = location.protocol === "https:" ? "wss:" : "ws:";
+    ws = new WebSocket(`${proto}//${location.host}/ws/translate`);
 
     ws.onopen = async () => {
-      logStatus("WebSocket connected. Requesting microphone...");
-      micStatus.textContent = "Microphone: 🎤 Listening";
+      // Turn mic indicator ON
+      micIndicator.textContent = "🎤 Listening…";
+      micIndicator.classList.add("mic-live");
 
       mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const inputRate = audioContext.sampleRate;
+      const rate = audioContext.sampleRate;
 
       const source = audioContext.createMediaStreamSource(mediaStream);
       processor = audioContext.createScriptProcessor(1024, 1, 1);
 
       processor.onaudioprocess = (e) => {
-        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        if (ws.readyState !== WebSocket.OPEN) return;
         const input = e.inputBuffer.getChannelData(0);
-        const down = downsampleBuffer(input, inputRate, 16000);
-        const pcm16 = convertFloat32ToInt16(down);
-        ws.send(pcm16.buffer);
+        const down = downsample(input, rate, 16000);
+        ws.send(toInt16(down).buffer);
       };
 
       source.connect(processor);
@@ -294,7 +384,6 @@
 
       startBtn.disabled = true;
       stopBtn.disabled = false;
-      logStatus("Streaming audio...");
     };
 
     ws.onmessage = (event) => {
@@ -305,46 +394,31 @@
         const ctx = data.result.context || "";
         const tran = data.result.tranContent || "";
 
-        // Partial → live preview
-        if (data.result.partial === true) {
+        if (data.result.partial) {
           updatePreview(ctx, tran);
           return;
         }
 
-        // Final → merge with pause detection
-        if (data.result.partial === false) {
-          const now = Date.now();
-          const diff = now - lastFinalTime;
-          lastFinalTime = now;
-
-          const newLine = diff > pauseThreshold;
-          addFinalMerged(ctx, tran, newLine);
-        }
+        const now = Date.now();
+        const newLine = now - lastFinal > pauseThreshold;
+        lastFinal = now;
+        addFinalLine(ctx, tran, newLine);
       }
     };
-
-    ws.onclose = () => {
-      logStatus("WebSocket closed");
-      micStatus.textContent = "Microphone: ⏹ Idle";
-    };
-  }
-
-  // ---------- STOP ----------
-  function cleanupAudio() {
-    if (processor) processor.disconnect();
-    if (audioContext) audioContext.close();
-    if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
   }
 
   function stop() {
-    cleanupAudio();
+    if (processor) processor.disconnect();
+    if (audioContext) audioContext.close();
+    if (mediaStream) mediaStream.getTracks().forEach(t=>t.stop());
     if (ws && ws.readyState === WebSocket.OPEN) ws.send("END");
+
+    // Turn mic indicator OFF
+    micIndicator.textContent = "⏹ Microphone inactive";
+    micIndicator.classList.remove("mic-live");
 
     startBtn.disabled = false;
     stopBtn.disabled = true;
-
-    micStatus.textContent = "Microphone: ⏹ Idle";
-    logStatus("Stopped");
   }
 
   startBtn.onclick = start;

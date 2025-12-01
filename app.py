@@ -17,8 +17,6 @@ load_dotenv()
 
 
 # ==== CONFIG ====
-# YOUDAO_APP_KEY = "32737ad9d0645a01"
-# YOUDAO_APP_SECRET = "QxoWAkmAO3DtBWdWhuImWoubHM2wbBqj"
 YOUDAO_APP_KEY = os.getenv("YOUDAO_APP_KEY")
 YOUDAO_APP_SECRET = os.getenv("YOUDAO_APP_SECRET")
 
