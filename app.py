@@ -12,9 +12,8 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-# -----------------------------------
-# PUT YOUR KEYS HERE
-# -----------------------------------
+
+# ==== CONFIG ====
 YOUDAO_APP_KEY = "32737ad9d0645a01"
 YOUDAO_APP_SECRET = "QxoWAkmAO3DtBWdWhuImWoubHM2wbBqj"
 
@@ -23,37 +22,20 @@ YOUDAO_WS_BASE = "wss://openapi.youdao.com/stream_speech_trans"
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 
-# Create static directory if not exists
-STATIC_DIR.mkdir(exist_ok=True)
 
-app = FastAPI()
-
-# Mount static folder
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-
-# ========= AUTH HELPERS =========
-def _sha256(s: str) -> str:
+# ==== AUTH helper ====
+def sha256(s: str) -> str:
     h = hashlib.sha256()
     h.update(s.encode("utf-8"))
     return h.hexdigest()
 
 
-def build_youdao_url(
-    app_key: str,
-    app_secret: str,
-    from_lang="zh-CHS",
-    to_lang="en-US",
-    format_="wav",
-    rate="16000",
-    channel="1",
-    version="v1",
-) -> str:
+def build_youdao_url(app_key, app_secret, from_lang="en-US", to_lang="zh-CHS"):
     from urllib.parse import urlencode
 
     salt = uuid.uuid4().hex
     curtime = str(int(time.time()))
-    sign = _sha256(app_key + salt + curtime + app_secret)
+    sign = sha256(app_key + salt + curtime + app_secret)
 
     params = {
         "appKey": app_key,
@@ -63,28 +45,28 @@ def build_youdao_url(
         "sign": sign,
         "from": from_lang,
         "to": to_lang,
-        "format": format_,
-        "rate": rate,
-        "channel": channel,
-        "version": version,
+        "format": "wav",
+        "rate": "16000",
+        "channel": "1",
+        "version": "v1",
     }
 
     return f"{YOUDAO_WS_BASE}?{urlencode(params)}"
 
 
-# ========= CLIENT =========
+# ==== YOUDAO CLIENT ====
 class YoudaoStreamClient:
-    def __init__(self, app_key, app_secret, from_lang, to_lang):
-        self.app_key = app_key
-        self.app_secret = app_secret
+    def __init__(self, key, secret, from_lang, to_lang):
+        self.key = key
+        self.secret = secret
         self.from_lang = from_lang
         self.to_lang = to_lang
         self.ws: Optional[websockets.WebSocketClientProtocol] = None
 
     async def __aenter__(self):
         url = build_youdao_url(
-            self.app_key,
-            self.app_secret,
+            self.key,
+            self.secret,
             self.from_lang,
             self.to_lang,
         )
@@ -92,77 +74,107 @@ class YoudaoStreamClient:
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
-        if self.ws and not self.ws.closed:
-            await self.ws.close()
+        try:
+            if self.ws and not self.ws.closed:
+                await self.ws.close()
+        except:
+            pass
 
-    async def send_audio(self, chunk: bytes):
-        if self.ws:
+    async def send_audio(self, chunk):
+        if self.ws and not self.ws.closed:
             await self.ws.send(chunk)
 
     async def send_end(self):
-        if self.ws:
-            await self.ws.send(b'{"end":"true"}')
+        """Tell Youdao the audio stream is finished."""
+        if self.ws and not self.ws.closed:
+            try:
+                await self.ws.send(b'{"end":"true"}')
+            except:
+                # connection already closed — ignore
+                pass
 
     async def recv_messages(self):
-        async for msg in self.ws:
-            try:
-                yield json.loads(msg)
-            except:
-                yield {"raw": msg}
+        """Yield messages until Youdao closes the socket."""
+        try:
+            async for msg in self.ws:
+                try:
+                    yield json.loads(msg)
+                except:
+                    yield {"raw": msg}
+
+        except websockets.ConnectionClosedOK:
+            # Normal Youdao closure
+            return
+
+        except Exception as e:
+            print("Youdao closed:", e)
 
 
-# ========= ROUTES =========
+# ==== FASTAPI APP ====
+app = FastAPI()
+
+# Serve /static/*
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
 
 @app.get("/")
 async def index():
     return FileResponse(STATIC_DIR / "index.html")
 
 
+# ==== WEBSOCKET ====
 @app.websocket("/ws/translate")
 async def translate_ws(websocket: WebSocket):
     await websocket.accept()
 
-    from_lang="zh-CHS",
-    to_lang="en-US",
+
+    from_lang = "zh-CHS"
+    to_lang = "en-US"
+
+    browser_closed = False
+    youdao_closed = False
 
     async with YoudaoStreamClient(
         YOUDAO_APP_KEY, YOUDAO_APP_SECRET, from_lang, to_lang
-    ) as client:
-
-        browser_closed = False
+    ) as yd:
 
         async def browser_to_youdao():
-            nonlocal browser_closed
+            nonlocal browser_closed, youdao_closed
             try:
                 while True:
                     msg = await websocket.receive()
 
                     if "bytes" in msg and msg["bytes"] is not None:
-                        await client.send_audio(msg["bytes"])
+                        await yd.send_audio(msg["bytes"])
 
                     elif msg.get("text") == "END":
-                        await client.send_end()
+                        await yd.send_end()
+                        youdao_closed = True
                         break
 
             except WebSocketDisconnect:
                 browser_closed = True
-                await client.send_end()
+                await yd.send_end()
+
             except Exception as e:
-                print("Browser→Youdao error:", e)
-                await client.send_end()
+                browser_closed = True
+                print("browser_to_youdao error:", e)
+                await yd.send_end()
 
         async def youdao_to_browser():
+            nonlocal youdao_closed, browser_closed
             try:
-                async for data in client.recv_messages():
+                async for data in yd.recv_messages():
                     if not browser_closed:
-                        await websocket.send_text(
-                            json.dumps(data, ensure_ascii=False)
-                        )
+                        await websocket.send_text(json.dumps(data, ensure_ascii=False))
             except Exception as e:
-                print("Youdao→Browser closed:", e)
+                print("youdao_to_browser error:", e)
+            finally:
+                youdao_closed = True
 
         await asyncio.gather(browser_to_youdao(), youdao_to_browser())
 
+        # Final cleanup — close browser WS safely
         try:
             await websocket.close()
         except:
