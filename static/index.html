@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Youdao Real-time Speech Translation</title>
+
+  <style>
+    body {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 25px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 30px;
+      font-size: 28px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 25px;
+    }
+
+    button {
+      padding: 12px 22px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    #startBtn { background: #16a34a; color: white; }
+    #startBtn:hover { background: #15803d; }
+
+    #stopBtn { background: #ef4444; color: white; }
+    #stopBtn:hover { background: #dc2626; }
+
+    .status-bar {
+      text-align: center;
+      margin-bottom: 20px;
+      opacity: 0.8;
+    }
+
+    .panels {
+      display: flex;
+      gap: 20px;
+      justify-content: space-between;
+    }
+
+    .panel {
+      flex: 1;
+      border: 1px solid #1e293b;
+      background: #1e293b;
+      border-radius: 10px;
+      padding: 15px;
+      height: 480px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #f1f5f9;
+      text-align: center;
+    }
+
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.55;
+      font-size: 16px;
+    }
+
+    /* Partial preview (gray, italic) */
+    .preview-line {
+      color: #94a3b8;
+      font-style: italic;
+      margin-bottom: 10px;
+    }
+
+    /* Final input transcript */
+    .final-input {
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      background: #1e293b;
+      border-left: 4px solid #38bdf8;
+      border-radius: 6px;
+    }
+
+    /* Final output translation */
+    .final-output {
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      background: #1e293b;
+      border-left: 4px solid #a78bfa;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🎧 Real-Time Speech Translation</h1>
+
+    <div class="controls">
+      <button id="startBtn">Start</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+
+    <div class="status-bar" id="micStatus">Microphone: ⏹ Idle</div>
+
+    <div class="panels">
+      <!-- INPUT PANEL -->
+      <div class="panel">
+        <div class="panel-title">🎙️ Input Language</div>
+        <div id="inputArea" class="content-area"></div>
+      </div>
+
+      <!-- OUTPUT PANEL -->
+      <div class="panel">
+        <div class="panel-title">🌐 Translation</div>
+        <div id="outputArea" class="content-area"></div>
+      </div>
+    </div>
+
+    <div class="status-bar" id="statusText">Status: Idle</div>
+  </div>
+
+<script>
+  const startBtn = document.getElementById("startBtn");
+  const stopBtn = document.getElementById("stopBtn");
+  const inputArea = document.getElementById("inputArea");
+  const outputArea = document.getElementById("outputArea");
+  const statusText = document.getElementById("statusText");
+  const micStatus = document.getElementById("micStatus");
+
+  let ws = null;
+  let audioContext = null;
+  let mediaStream = null;
+  let processor = null;
+
+  // Preview DOM nodes
+  let previewInput = null;
+  let previewOutput = null;
+
+  // Merged line DOM nodes
+  let currentInputLine = null;
+  let currentOutputLine = null;
+
+  // Pause-based segmentation
+  let lastFinalTime = Date.now();
+  let pauseThreshold = 1200; // 1.2s pause → new line
+
+  function logStatus(msg) {
+    statusText.textContent = "Status: " + msg;
+    console.log(msg);
+  }
+
+  // ---------- PARTIAL PREVIEW ----------
+  function updatePreview(ctx, tran) {
+    if (!previewInput) {
+      previewInput = document.createElement("div");
+      previewInput.className = "preview-line";
+      inputArea.appendChild(previewInput);
+    }
+    if (!previewOutput) {
+      previewOutput = document.createElement("div");
+      previewOutput.className = "preview-line";
+      outputArea.appendChild(previewOutput);
+    }
+
+    previewInput.textContent = ctx;
+    previewOutput.textContent = tran;
+
+    inputArea.scrollTop = inputArea.scrollHeight;
+    outputArea.scrollTop = outputArea.scrollHeight;
+  }
+
+  // ---------- FINAL MERGED SENTENCE HANDLER ----------
+  function addFinalMerged(ctx, tran, newLine) {
+    // Remove preview lines
+    if (previewInput) previewInput.remove();
+    if (previewOutput) previewOutput.remove();
+    previewInput = null;
+    previewOutput = null;
+
+    // ----- INPUT PANEL -----
+    if (ctx) {
+      if (!currentInputLine || newLine) {
+        currentInputLine = document.createElement("div");
+        currentInputLine.className = "final-input";
+        inputArea.appendChild(currentInputLine);
+      }
+      currentInputLine.textContent +=
+        (currentInputLine.textContent ? " " : "") + ctx;
+    }
+
+    // ----- OUTPUT PANEL -----
+    if (tran) {
+      if (!currentOutputLine || newLine) {
+        currentOutputLine = document.createElement("div");
+        currentOutputLine.className = "final-output";
+        outputArea.appendChild(currentOutputLine);
+      }
+      currentOutputLine.textContent +=
+        (currentOutputLine.textContent ? " " : "") + tran;
+    }
+
+    inputArea.scrollTop = inputArea.scrollHeight;
+    outputArea.scrollTop = outputArea.scrollHeight;
+  }
+
+  // ---------- AUDIO PROCESSING (same as before) ----------
+  function downsampleBuffer(buffer, inputSampleRate, outSampleRate) {
+    const ratio = inputSampleRate / outSampleRate;
+    const newLength = Math.round(buffer.length / ratio);
+    const result = new Float32Array(newLength);
+    let offset = 0;
+
+    for (let i = 0; i < newLength; i++) {
+      const nextOffset = Math.round((i + 1) * ratio);
+      let sum = 0;
+      let count = 0;
+      for (let j = offset; j < nextOffset && j < buffer.length; j++) {
+        sum += buffer[j];
+        count++;
+      }
+      result[i] = count > 0 ? sum / count : 0;
+      offset = nextOffset;
+    }
+    return result;
+  }
+
+  function convertFloat32ToInt16(buffer) {
+    const out = new Int16Array(buffer.length);
+    for (let i = 0; i < buffer.length; i++) {
+      let s = Math.max(-1, Math.min(1, buffer[i]));
+      out[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    }
+    return out;
+  }
+
+  // ---------- START ----------
+  async function start() {
+    inputArea.innerHTML = "";
+    outputArea.innerHTML = "";
+    previewInput = null;
+    previewOutput = null;
+    currentInputLine = null;
+    currentOutputLine = null;
+
+    const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+    ws = new WebSocket(`${wsProtocol}//${location.host}/ws/translate`);
+
+    ws.onopen = async () => {
+      logStatus("WebSocket connected. Requesting microphone...");
+      micStatus.textContent = "Microphone: 🎤 Listening";
+
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const inputRate = audioContext.sampleRate;
+
+      const source = audioContext.createMediaStreamSource(mediaStream);
+      processor = audioContext.createScriptProcessor(1024, 1, 1);
+
+      processor.onaudioprocess = (e) => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        const input = e.inputBuffer.getChannelData(0);
+        const down = downsampleBuffer(input, inputRate, 16000);
+        const pcm16 = convertFloat32ToInt16(down);
+        ws.send(pcm16.buffer);
+      };
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      logStatus("Streaming audio...");
+    };
+
+    ws.onmessage = (event) => {
+      let data;
+      try { data = JSON.parse(event.data); } catch { return; }
+
+      if (data.action === "recognition" && data.result) {
+        const ctx = data.result.context || "";
+        const tran = data.result.tranContent || "";
+
+        // Partial → live preview
+        if (data.result.partial === true) {
+          updatePreview(ctx, tran);
+          return;
+        }
+
+        // Final → merge with pause detection
+        if (data.result.partial === false) {
+          const now = Date.now();
+          const diff = now - lastFinalTime;
+          lastFinalTime = now;
+
+          const newLine = diff > pauseThreshold;
+          addFinalMerged(ctx, tran, newLine);
+        }
+      }
+    };
+
+    ws.onclose = () => {
+      logStatus("WebSocket closed");
+      micStatus.textContent = "Microphone: ⏹ Idle";
+    };
+  }
+
+  // ---------- STOP ----------
+  function cleanupAudio() {
+    if (processor) processor.disconnect();
+    if (audioContext) audioContext.close();
+    if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+  }
+
+  function stop() {
+    cleanupAudio();
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send("END");
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+
+    micStatus.textContent = "Microphone: ⏹ Idle";
+    logStatus("Stopped");
+  }
+
+  startBtn.onclick = start;
+  stopBtn.onclick = stop;
+</script>
+
+</body>
+</html>
