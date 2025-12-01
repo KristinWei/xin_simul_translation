@@ -24,11 +24,11 @@
     }
 
     body {
-      background: var(--bg);
-      color: var(--text-main);
-      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
       margin: 0;
       padding: 0;
+      background: var(--bg);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-main);
     }
 
     .page {
@@ -44,7 +44,7 @@
       gap: 12px;
       padding: 12px 18px;
       background: rgba(15,23,42,0.85);
-      border-bottom: 1px solid #1e293b;
+      border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
       z-index: 20;
@@ -108,40 +108,32 @@
       cursor: pointer;
       transition: 0.18s ease;
       min-width: 150px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       color: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
 
     #startBtn {
       background: linear-gradient(135deg, var(--blue-strong), var(--blue-light));
       box-shadow: 0 4px 12px rgba(59,130,246,0.45);
     }
-    #startBtn:hover {
-      transform: translateY(-2px) scale(1.03);
-      box-shadow: 0 7px 20px rgba(59,130,246,0.6);
-    }
+    #startBtn:hover { transform: translateY(-2px) scale(1.03); }
     #startBtn:disabled {
       background: #6ea8ff;
       opacity: 0.45;
-      cursor: not-allowed;
-      box-shadow: none;
       transform: none;
+      cursor: not-allowed;
     }
 
     #stopBtn {
       background: linear-gradient(135deg, var(--pink-strong), var(--pink-light));
       box-shadow: 0 4px 12px rgba(236,72,153,0.45);
     }
-    #stopBtn:hover {
-      transform: translateY(-2px) scale(1.03);
-      box-shadow: 0 7px 20px rgba(236,72,153,0.6);
-    }
+    #stopBtn:hover { transform: translateY(-2px) scale(1.03); }
     #stopBtn:disabled {
       background: #ff9fd0;
       opacity: 0.45;
-      cursor: not-allowed;
-      box-shadow: none;
       transform: none;
+      cursor: not-allowed;
     }
 
     /* MICROPHONE INDICATOR */
@@ -160,23 +152,23 @@
     }
 
     @keyframes pulse {
-      0% { opacity: 0.35; }
+      0% { opacity: 0.3; }
       50% { opacity: 1; }
-      100% { opacity: 0.35; }
+      100% { opacity: 0.3; }
     }
 
-    /* PANELS */
+    /* PANELS (FIXED FOR MOBILE PORTRAIT) */
     .panels-wrapper {
       display: flex;
       justify-content: center;
     }
 
     .panels {
+      width: 100%;
+      max-width: 780px;
       display: flex;
       flex-direction: column;
       gap: 14px;
-      width: 100%;
-      max-width: 780px;
     }
 
     @media (min-width: 700px) {
@@ -189,13 +181,20 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 12px;
-      height: 42vh;
       display: flex;
       flex-direction: column;
+
+      /* FIX: Avoid Safari vh bug */
+      min-height: 310px;
+      max-height: 55vh;
     }
 
     @media (min-width: 700px) {
-      .panel { height: 60vh; }
+      .panel {
+        min-height: 450px;
+        max-height: none;
+        height: 60vh;
+      }
     }
 
     .panel-title {
@@ -291,12 +290,12 @@
   const pauseThreshold = 1200;
 
   function makeBlock(area, text, isInput) {
-    const d = document.createElement("div");
-    d.className = "text-block " + (isInput ? "input-block" : "output-block");
-    d.textContent = text;
-    area.appendChild(d);
+    const div = document.createElement("div");
+    div.className = "text-block " + (isInput ? "input-block" : "output-block");
+    div.textContent = text;
+    area.appendChild(div);
     area.scrollTop = area.scrollHeight;
-    return d;
+    return div;
   }
 
   function updatePreview(ctx, tran) {
@@ -335,29 +334,29 @@
       for (let j = offset; j < next && j < f32.length; j++) {
         sum += f32[j]; cnt++;
       }
-      out[i] = sum / cnt;
+      out[i] = cnt ? sum / cnt : 0;
       offset = next;
     }
     return out;
   }
 
-  function floatTo16(arr) {
-    const out = new Int16Array(arr.length);
-    for (let i = 0; i < arr.length; i++) {
-      const v = Math.max(-1, Math.min(1, arr[i]));
-      out[i] = v < 0 ? v * 0x8000 : v * 0x7fff;
+  function floatToInt16(f32) {
+    const out = new Int16Array(f32.length);
+    for (let i = 0; i < f32.length; i++) {
+      const s = Math.max(-1, Math.min(1, f32[i]));
+      out[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
     }
     return out;
   }
 
-  async function start() {
+  async function startTranslation() {
     inputArea.innerHTML = "";
     outputArea.innerHTML = "";
     previewInput = previewOutput = null;
     currentInput = currentOutput = null;
 
-    const proto = location.protocol === "https:" ? "wss:" : "ws:";
-    ws = new WebSocket(`${proto}//${location.host}/ws/translate`);
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    ws = new WebSocket(`${protocol}//${location.host}/ws/translate`);
 
     ws.onopen = async () => {
       micIndicator.textContent = "🎤 Listening…";
@@ -370,10 +369,11 @@
       const src = audioContext.createMediaStreamSource(mediaStream);
       processor = audioContext.createScriptProcessor(1024, 1, 1);
 
-      processor.onaudioprocess = e => {
+      processor.onaudioprocess = (e) => {
         if (!ws || ws.readyState !== 1) return;
         const input = e.inputBuffer.getChannelData(0);
-        ws.send(floatTo16(downsample(input, inRate, 16000)).buffer);
+        const down = downsample(input, inRate, 16000);
+        ws.send(floatToInt16(down).buffer);
       };
 
       src.connect(processor);
@@ -383,7 +383,7 @@
       stopBtn.disabled = false;
     };
 
-    ws.onmessage = evt => {
+    ws.onmessage = (evt) => {
       let data;
       try { data = JSON.parse(evt.data); } catch { return; }
 
@@ -405,7 +405,7 @@
     };
   }
 
-  function stop() {
+  function stopTranslation() {
     if (processor) processor.disconnect();
     if (audioContext) audioContext.close();
     if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
@@ -418,9 +418,8 @@
     stopBtn.disabled = true;
   }
 
-  startBtn.onclick = start;
-  stopBtn.onclick = stop;
-
+  startBtn.onclick = startTranslation;
+  stopBtn.onclick = stopTranslation;
 </script>
 
 </body>
