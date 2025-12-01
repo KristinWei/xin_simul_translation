@@ -43,11 +43,12 @@
       align-items: center;
       gap: 12px;
       padding: 12px 18px;
-      background: rgba(15,23,42,0.8);
+      background: rgba(15,23,42,0.85);
       border-bottom: 1px solid #1e293b;
       position: sticky;
       top: 0;
       z-index: 20;
+      backdrop-filter: blur(6px);
     }
 
     .logo {
@@ -108,28 +109,27 @@
       transition: 0.18s ease;
       min-width: 150px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      color: white;
     }
 
     #startBtn {
       background: linear-gradient(135deg, var(--blue-strong), var(--blue-light));
-      color: white;
       box-shadow: 0 4px 12px rgba(59,130,246,0.45);
     }
     #startBtn:hover {
       transform: translateY(-2px) scale(1.03);
       box-shadow: 0 7px 20px rgba(59,130,246,0.6);
     }
-
     #startBtn:disabled {
       background: #6ea8ff;
-      opacity: 0.5;
+      opacity: 0.45;
+      cursor: not-allowed;
       box-shadow: none;
       transform: none;
     }
 
     #stopBtn {
       background: linear-gradient(135deg, var(--pink-strong), var(--pink-light));
-      color: white;
       box-shadow: 0 4px 12px rgba(236,72,153,0.45);
     }
     #stopBtn:hover {
@@ -138,7 +138,8 @@
     }
     #stopBtn:disabled {
       background: #ff9fd0;
-      opacity: 0.5;
+      opacity: 0.45;
+      cursor: not-allowed;
       box-shadow: none;
       transform: none;
     }
@@ -212,6 +213,7 @@
       line-height: 1.5;
     }
 
+    /* Smooth preview + final identical */
     .text-block {
       padding: 8px 10px;
       margin-bottom: 6px;
@@ -225,8 +227,8 @@
     .output-block { border-left: 3px solid var(--accent-output); }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(2px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0px); }
     }
   </style>
 </head>
@@ -244,7 +246,7 @@
 
   <div class="page">
 
-    <!-- TITLE -->
+    <!-- MAIN TITLE -->
     <div class="main-title">Realtime Speech Translation</div>
 
     <!-- BUTTONS -->
@@ -253,7 +255,7 @@
       <button id="stopBtn" disabled>Stop</button>
     </div>
 
-    <!-- MICROPHONE INDICATOR -->
+    <!-- MIC STATUS -->
     <div id="micIndicator" class="mic-indicator">⏹ Microphone inactive</div>
 
     <!-- PANELS -->
@@ -283,112 +285,107 @@
 
   let ws, audioContext, processor, mediaStream;
   let previewInput = null, previewOutput = null;
-  let currentInputLine = null, currentOutputLine = null;
+  let currentInput = null, currentOutput = null;
 
   let lastFinal = Date.now();
   const pauseThreshold = 1200;
 
-  function addBlock(area, text, isInput) {
-    const div = document.createElement("div");
-    div.className = "text-block " + (isInput ? "input-block" : "output-block");
-    div.textContent = text;
-    area.appendChild(div);
+  function makeBlock(area, text, isInput) {
+    const d = document.createElement("div");
+    d.className = "text-block " + (isInput ? "input-block" : "output-block");
+    d.textContent = text;
+    area.appendChild(d);
     area.scrollTop = area.scrollHeight;
-    return div;
+    return d;
   }
 
   function updatePreview(ctx, tran) {
-    if (!previewInput) previewInput = addBlock(inputArea, ctx, true);
+    if (!previewInput) previewInput = makeBlock(inputArea, ctx, true);
     else previewInput.textContent = ctx;
 
-    if (!previewOutput) previewOutput = addBlock(outputArea, tran, false);
+    if (!previewOutput) previewOutput = makeBlock(outputArea, tran, false);
     else previewOutput.textContent = tran;
   }
 
-  function addFinalLine(ctx, tran, newLine) {
+  function addFinal(ctx, tran, newLine) {
     if (previewInput) previewInput.remove();
     if (previewOutput) previewOutput.remove();
     previewInput = previewOutput = null;
 
     if (ctx) {
-      if (!currentInputLine || newLine)
-        currentInputLine = addBlock(inputArea, ctx, true);
-      else currentInputLine.textContent += " " + ctx;
+      if (!currentInput || newLine) currentInput = makeBlock(inputArea, ctx, true);
+      else currentInput.textContent += " " + ctx;
     }
 
     if (tran) {
-      if (!currentOutputLine || newLine)
-        currentOutputLine = addBlock(outputArea, tran, false);
-      else currentOutputLine.textContent += " " + tran;
+      if (!currentOutput || newLine) currentOutput = makeBlock(outputArea, tran, false);
+      else currentOutput.textContent += " " + tran;
     }
   }
 
-  function downsample(buffer, inputRate, outputRate) {
-    const ratio = inputRate / outputRate;
-    const newLength = Math.round(buffer.length / ratio);
-    const out = new Float32Array(newLength);
+  function downsample(f32, inRate, outRate) {
+    const ratio = inRate / outRate;
+    const len = Math.round(f32.length / ratio);
+    const out = new Float32Array(len);
     let offset = 0;
 
-    for (let i = 0; i < newLength; i++) {
+    for (let i = 0; i < len; i++) {
       const next = Math.round((i + 1) * ratio);
-      let sum = 0, count = 0;
-      for (let j = offset; j < next && j < buffer.length; j++) {
-        sum += buffer[j]; count++;
+      let sum = 0, cnt = 0;
+      for (let j = offset; j < next && j < f32.length; j++) {
+        sum += f32[j]; cnt++;
       }
-      out[i] = sum / count;
+      out[i] = sum / cnt;
       offset = next;
     }
     return out;
   }
 
-  function toInt16(f32) {
-    const out = new Int16Array(f32.length);
-    for (let i = 0; i < f32.length; i++) {
-      let s = Math.max(-1, Math.min(1, f32[i]));
-      out[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+  function floatTo16(arr) {
+    const out = new Int16Array(arr.length);
+    for (let i = 0; i < arr.length; i++) {
+      const v = Math.max(-1, Math.min(1, arr[i]));
+      out[i] = v < 0 ? v * 0x8000 : v * 0x7fff;
     }
     return out;
   }
 
   async function start() {
-    // reset content
     inputArea.innerHTML = "";
     outputArea.innerHTML = "";
     previewInput = previewOutput = null;
-    currentInputLine = currentOutputLine = null;
+    currentInput = currentOutput = null;
 
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
     ws = new WebSocket(`${proto}//${location.host}/ws/translate`);
 
     ws.onopen = async () => {
-      // Turn mic indicator ON
       micIndicator.textContent = "🎤 Listening…";
       micIndicator.classList.add("mic-live");
 
       mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const rate = audioContext.sampleRate;
+      const inRate = audioContext.sampleRate;
 
-      const source = audioContext.createMediaStreamSource(mediaStream);
+      const src = audioContext.createMediaStreamSource(mediaStream);
       processor = audioContext.createScriptProcessor(1024, 1, 1);
 
-      processor.onaudioprocess = (e) => {
-        if (ws.readyState !== WebSocket.OPEN) return;
+      processor.onaudioprocess = e => {
+        if (!ws || ws.readyState !== 1) return;
         const input = e.inputBuffer.getChannelData(0);
-        const down = downsample(input, rate, 16000);
-        ws.send(toInt16(down).buffer);
+        ws.send(floatTo16(downsample(input, inRate, 16000)).buffer);
       };
 
-      source.connect(processor);
+      src.connect(processor);
       processor.connect(audioContext.destination);
 
       startBtn.disabled = true;
       stopBtn.disabled = false;
     };
 
-    ws.onmessage = (event) => {
+    ws.onmessage = evt => {
       let data;
-      try { data = JSON.parse(event.data); } catch { return; }
+      try { data = JSON.parse(evt.data); } catch { return; }
 
       if (data.action === "recognition" && data.result) {
         const ctx = data.result.context || "";
@@ -402,7 +399,8 @@
         const now = Date.now();
         const newLine = now - lastFinal > pauseThreshold;
         lastFinal = now;
-        addFinalLine(ctx, tran, newLine);
+
+        addFinal(ctx, tran, newLine);
       }
     };
   }
@@ -410,10 +408,9 @@
   function stop() {
     if (processor) processor.disconnect();
     if (audioContext) audioContext.close();
-    if (mediaStream) mediaStream.getTracks().forEach(t=>t.stop());
-    if (ws && ws.readyState === WebSocket.OPEN) ws.send("END");
+    if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+    if (ws && ws.readyState === 1) ws.send("END");
 
-    // Turn mic indicator OFF
     micIndicator.textContent = "⏹ Microphone inactive";
     micIndicator.classList.remove("mic-live");
 
@@ -423,6 +420,7 @@
 
   startBtn.onclick = start;
   stopBtn.onclick = stop;
+
 </script>
 
 </body>
