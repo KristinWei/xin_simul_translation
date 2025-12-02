@@ -15,7 +15,8 @@
 
       --blue-strong: #3b82f6;
       --blue-light: #60a5fa;
-
+      --yellow-strong: #d97706;
+      --yellow-light: #fbbf24;
       --pink-strong: #ec4899;
       --pink-light: #f472b6;
 
@@ -28,6 +29,15 @@
       background: var(--bg);
       color: var(--text-main);
       font-family: "Inter", -apple-system, sans-serif;
+      transition: 0.25s;
+    }
+
+    body.light-mode {
+      --bg: #f8fafc;
+      --panel-bg: #ffffff;
+      --border: #d1d5db;
+      --text-main: #0f172a;
+      --text-muted: #6b7280;
     }
 
     /* HEADER */
@@ -37,195 +47,201 @@
       gap: 12px;
       padding: 12px 18px;
       background: rgba(15,23,42,0.85);
-      border-bottom: 1px solid #1e293b;
+      border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 20;
       backdrop-filter: blur(6px);
     }
 
     .logo {
       width: 48px;
       height: 48px;
-      border-radius: 10px;
       background: white;
       overflow: hidden;
+      border-radius: 10px;
+    }
+    .logo img { width: 100%; height: 100%; object-fit: contain; }
+
+    .brand-title { font-size: 18px; font-weight: 700; }
+    .brand-sub { font-size: 13px; color: var(--text-muted); }
+
+    #themeBtn {
+      margin-left: auto;
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--panel-bg);
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      gap: 6px;
+      font-size: 14px;
     }
 
-    .logo img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    .brand-title {
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    .brand-sub {
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    /* LAYOUT CONTAINER */
+    /* PAGE */
     .page {
-      max-width: 900px;
+      max-width: 960px;
       margin: auto;
-      padding: 16px;
+      padding: 20px;
     }
 
-    /* MAIN TITLE */
     .main-title {
       text-align: center;
       font-size: 28px;
       font-weight: 700;
-      margin-top: 22px;
-      margin-bottom: 20px;
+      margin: 22px 0 20px;
     }
 
-    /* BUTTONS */
-    .button-row {
+    /* BUTTON CONTROLS */
+    .control-row {
       display: flex;
       justify-content: center;
-      gap: 18px;
+      gap: 16px;
       margin-bottom: 16px;
       flex-wrap: wrap;
     }
 
-    button {
+    .primary-btn {
       padding: 14px 36px;
-      border: none;
       border-radius: 18px;
       font-size: 17px;
       font-weight: 600;
-      cursor: pointer;
-      transition: 0.2s;
       min-width: 150px;
+      border: none;
       color: white;
+      cursor: pointer;
     }
 
-    #startBtn {
-      background: linear-gradient(135deg, var(--blue-strong), var(--blue-light));
-      box-shadow: 0 4px 12px rgba(59,130,246,0.45);
-    }
+    #startBtn      { background: linear-gradient(135deg, var(--blue-strong), var(--blue-light)); }
+    #stopResumeBtn { background: linear-gradient(135deg, var(--yellow-strong), var(--yellow-light)); }
+    #finishBtn     { background: linear-gradient(135deg, var(--pink-strong), var(--pink-light)); }
 
-    #stopBtn {
-      background: linear-gradient(135deg, var(--pink-strong), var(--pink-light));
-      box-shadow: 0 4px 12px rgba(236,72,153,0.45);
-    }
-
-    #startBtn:disabled,
-    #stopBtn:disabled {
+    .primary-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
     }
 
-    /* MIC STATUS */
-    .mic-indicator {
+    /* MIC + DOWNLOAD */
+    .mic-block {
       text-align: center;
-      font-size: 15px;
-      margin-bottom: 14px;
-      height: 22px;
-      color: var(--text-muted);
+      margin-bottom: 20px;
     }
 
-    .mic-live {
-      color: var(--blue-light);
-      font-weight: 600;
-      animation: pulse 1.4s infinite;
+    #downloadBtn {
+      margin-top: 6px;
+      padding: 8px 22px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--panel-bg);
+      color: var(--text-main);
+      cursor: pointer;
     }
 
-    @keyframes pulse {
-      0% { opacity: 0.35; }
-      50% { opacity: 1; }
-      100% { opacity: 0.35; }
-    }
-
-    /* PANELS CONTAINER */
+    /* PANELS (G1 spacing) */
     .panels {
+      position: relative; /* allows swap icon overlay */
       display: flex;
-      flex-direction: column;
-      gap: 18px;
+      gap: 20px;
+      flex-wrap: nowrap;
     }
 
-    @media (min-width: 700px) {
-      .panels { flex-direction: row; }
+    @media (max-width: 750px) {
+      .panels {
+        flex-direction: column;
+      }
     }
 
     .panel {
       flex: 1;
       background: var(--panel-bg);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px;
+      border-radius: 14px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
-
-      /* FIX for iPhone Safari collapse issue */
-      min-height: 260px;
+      min-height: 420px;
       max-height: 70vh;
-    }
-
-    @media (min-width: 700px) {
-      .panel {
-        min-height: 400px;
-        max-height: 65vh;
-      }
     }
 
     .panel-title {
       text-align: center;
       font-size: 16px;
       font-weight: 600;
-      margin-bottom: 6px;
+      margin-bottom: 12px;
     }
 
-    /* LANGUAGE SELECT */
-    .lang-select-bar {
-      margin-bottom: 10px;
+    /* LANGUAGE SELECT INSIDE PANELS */
+    .lang-inside {
+      text-align: center;
       font-size: 14px;
       color: var(--text-muted);
+      margin-bottom: 10px;
     }
 
     select {
-      width: 100%;
-      background: #0f172a;
-      border: 1px solid #334155;
-      padding: 10px;
-      font-size: 15px;
-      color: white;
-      border-radius: 8px;
       margin-top: 5px;
+      padding: 10px 14px;
+      width: 85%;
+      max-width: 220px;
+      border-radius: 8px;
+      font-size: 15px;
+      background: #0f172a;
+      color: white;
+      border: 1px solid var(--border);
     }
 
-    /* TEXT CONTENT */
     .content-area {
       flex: 1;
       overflow-y: auto;
       white-space: pre-wrap;
-      font-size: 15px;
       line-height: 1.5;
-
-      /* CRITICAL FIX for iOS Safari */
+      margin-top: 8px;
       min-height: 0;
     }
 
     .text-block {
       padding: 8px 10px;
-      background: rgba(15,23,42,0.9);
       border-radius: 6px;
       margin-bottom: 6px;
+      background: rgba(15,23,42,0.9);
       opacity: 0;
       animation: fadeIn 0.25s forwards;
     }
 
-    .input-block { border-left: 3px solid var(--accent-input); }
+    .input-block  { border-left: 3px solid var(--accent-input); }
     .output-block { border-left: 3px solid var(--accent-output); }
 
     @keyframes fadeIn { to { opacity: 1; } }
+
+    /* SWAP ICON — Between Panels */
+    .swap-between-panels {
+      position: absolute;
+      top: 55%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+      pointer-events: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .swap-btn {
+      pointer-events: auto;
+      font-size: 32px;
+      background: none;
+      border: none;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: 0.15s;
+      padding: 6px;
+    }
+
+    .swap-btn:hover {
+      transform: scale(1.25);
+      opacity: 0.9;
+    }
 
   </style>
 </head>
@@ -239,19 +255,34 @@
       <div class="brand-title">XINFO CONSULTING</div>
       <div class="brand-sub">Realtime AI Tools</div>
     </div>
+
+    <button id="themeBtn">
+      <span id="themeIcon">🌙</span>
+      <span id="themeLabel">Dark</span>
+    </button>
   </div>
 
   <div class="page">
 
     <div class="main-title">Realtime Speech Translation</div>
 
-    <!-- START/STOP BUTTONS -->
-    <div class="button-row">
-      <button id="startBtn">Start</button>
-      <button id="stopBtn" disabled>Stop</button>
+    <!-- CONTROL BUTTONS -->
+    <div class="control-row">
+      <button id="startBtn" class="primary-btn">Start</button>
+      <button id="stopResumeBtn" class="primary-btn" disabled>Stop</button>
+      <button id="finishBtn" class="primary-btn" disabled>Finish</button>
     </div>
 
-    <div id="micIndicator" class="mic-indicator">⏹ Microphone inactive</div>
+    <!-- MIC + DOWNLOAD -->
+    <div class="mic-block">
+      <div id="micIndicator">⏹ Microphone inactive</div>
+      <button id="downloadBtn">⬇️ Download Transcript</button>
+    </div>
+
+    <!-- SWAP ICON BETWEEN PANELS -->
+    <div class="swap-between-panels">
+      <button id="swapBtn" class="swap-btn">⇄</button>
+    </div>
 
     <!-- PANELS -->
     <div class="panels">
@@ -260,8 +291,7 @@
       <div class="panel">
         <div class="panel-title">🎙 Input Transcript</div>
 
-        <div class="lang-select-bar">
-          Input Language:
+        <div class="lang-inside">
           <select id="inputLang">
             <option value="en-US">English</option>
             <option value="zh-CHS">Chinese</option>
@@ -279,8 +309,7 @@
       <div class="panel">
         <div class="panel-title">🌐 Translation</div>
 
-        <div class="lang-select-bar">
-          Output Language:
+        <div class="lang-inside">
           <select id="outputLang">
             <option value="zh-CHS">Chinese</option>
             <option value="en-US">English</option>
@@ -295,180 +324,264 @@
       </div>
 
     </div>
+
   </div>
 
 <script>
-  /* LANGUAGE SETTINGS */
-  const inputLang = document.getElementById("inputLang");
-  const outputLang = document.getElementById("outputLang");
+/* ===== STATE ===== */
+let ws, audioContext, processor, mediaStream;
+let isPaused = false;
 
-  let selectedFrom = inputLang.value;
-  let selectedTo = outputLang.value;
+const inputLang = document.getElementById("inputLang");
+const outputLang = document.getElementById("outputLang");
 
-  inputLang.onchange = () => selectedFrom = inputLang.value;
-  outputLang.onchange = () => selectedTo = outputLang.value;
+let selectedFrom = inputLang.value;
+let selectedTo = outputLang.value;
 
-  /* MAIN ELEMENTS */
-  const startBtn       = document.getElementById("startBtn");
-  const stopBtn        = document.getElementById("stopBtn");
-  const micIndicator   = document.getElementById("micIndicator");
-  const inputArea      = document.getElementById("inputArea");
-  const outputArea     = document.getElementById("outputArea");
+let previewInput = null;
+let previewOutput = null;
+let currentInput = null;
+let currentOutput = null;
 
-  let ws, audioContext, processor, mediaStream;
-  let previewInput, previewOutput;
-  let currentInput, currentOutput;
+let lastFinal = Date.now();
+const pauseThreshold = 1200;
 
-  let lastFinal = Date.now();
-  const pauseThreshold = 1200;
+/* ELEMENTS */
+const startBtn = document.getElementById("startBtn");
+const stopResumeBtn = document.getElementById("stopResumeBtn");
+const finishBtn = document.getElementById("finishBtn");
+const swapBtn = document.getElementById("swapBtn");
 
+const micIndicator = document.getElementById("micIndicator");
+const downloadBtn = document.getElementById("downloadBtn");
 
-  /* TEXT BLOCK HELPERS */
-  function block(area, text, isInput) {
-    const div = document.createElement("div");
-    div.className = "text-block " + (isInput ? "input-block" : "output-block");
-    div.textContent = text;
-    area.appendChild(div);
-    area.scrollTop = area.scrollHeight;
-    return div;
+const inputArea = document.getElementById("inputArea");
+const outputArea = document.getElementById("outputArea");
+
+const themeBtn = document.getElementById("themeBtn");
+const themeLabel = document.getElementById("themeLabel");
+const themeIcon = document.getElementById("themeIcon");
+
+/* BLOCK HANDLING */
+function block(area, text, isInput) {
+  const div = document.createElement("div");
+  div.className = "text-block " + (isInput ? "input-block" : "output-block");
+  div.textContent = text;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  return div;
+}
+
+function updatePreview(ctx, tran) {
+  previewInput = previewInput || block(inputArea, ctx, true);
+  previewInput.textContent = ctx;
+
+  previewOutput = previewOutput || block(outputArea, tran, false);
+  previewOutput.textContent = tran;
+}
+
+function finalize(ctx, tran, newLine) {
+  if (previewInput) previewInput.remove();
+  if (previewOutput) previewOutput.remove();
+  previewInput = previewOutput = null;
+
+  if (ctx) {
+    currentInput = (!currentInput || newLine)
+      ? block(inputArea, ctx, true)
+      : (currentInput.textContent += " " + ctx, currentInput);
   }
 
-  function updatePreview(ctx, tran) {
-    if (!previewInput) previewInput = block(inputArea, ctx, true);
-    else previewInput.textContent = ctx;
-
-    if (!previewOutput) previewOutput = block(outputArea, tran, false);
-    else previewOutput.textContent = tran;
+  if (tran) {
+    currentOutput = (!currentOutput || newLine)
+      ? block(outputArea, tran, false)
+      : (currentOutput.textContent += " " + tran, currentOutput);
   }
+}
 
-  function finalize(ctx, tran, newLine) {
-    if (previewInput) previewInput.remove();
-    if (previewOutput) previewOutput.remove();
-    previewInput = previewOutput = null;
+/* AUDIO PROCESSING */
+function downsample(buf, inRate, outRate) {
+  const ratio = inRate / outRate;
+  const len = Math.round(buf.length / ratio);
+  const out = new Float32Array(len);
+  let offset = 0;
 
-    if (ctx) {
-      if (!currentInput || newLine) currentInput = block(inputArea, ctx, true);
-      else currentInput.textContent += " " + ctx;
+  for (let i = 0; i < len; i++) {
+    const next = Math.round((i + 1) * ratio);
+    let sum = 0, cnt = 0;
+    for (let j = offset; j < next && j < buf.length; j++) {
+      sum += buf[j]; cnt++;
     }
+    out[i] = sum / (cnt || 1);
+    offset = next;
+  }
+  return out;
+}
 
-    if (tran) {
-      if (!currentOutput || newLine) currentOutput = block(outputArea, tran, false);
-      else currentOutput.textContent += " " + tran;
+function f32To16(arr) {
+  const out = new Int16Array(arr.length);
+  for (let i = 0; i < arr.length; i++) {
+    let v = Math.max(-1, Math.min(1, arr[i]));
+    out[i] = v < 0 ? v * 0x8000 : v * 0x7fff;
+  }
+  return out;
+}
+
+/* START STREAM */
+async function start() {
+  isPaused = false;
+
+  inputArea.innerHTML = "";
+  outputArea.innerHTML = "";
+
+  previewInput = previewOutput = null;
+  currentInput = currentOutput = null;
+
+  await startAudio();
+  openWS();
+
+  micIndicator.textContent = "🎤 Listening…";
+  micIndicator.classList.add("mic-live");
+
+  startBtn.disabled = true;
+  stopResumeBtn.disabled = false;
+  finishBtn.disabled = false;
+
+  stopResumeBtn.textContent = "Stop";
+}
+
+async function startAudio() {
+  mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  audioContext = new AudioContext();
+  const rate = audioContext.sampleRate;
+
+  const source = audioContext.createMediaStreamSource(mediaStream);
+  processor = audioContext.createScriptProcessor(1024, 1, 1);
+
+  processor.onaudioprocess = (e) => {
+    if (isPaused) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    const buf = e.inputBuffer.getChannelData(0);
+    ws.send(f32To16(downsample(buf, rate, 16000)).buffer);
+  };
+
+  source.connect(processor);
+  processor.connect(audioContext.destination);
+}
+
+/* WEBSOCKET */
+function openWS() {
+  const proto = location.protocol === "https:" ? "wss:" : "ws:";
+  ws = new WebSocket(
+    `${proto}//${location.host}/ws/translate?from=${selectedFrom}&to=${selectedTo}`
+  );
+
+  ws.onmessage = (evt) => {
+    if (isPaused) return;
+
+    let d;
+    try { d = JSON.parse(evt.data); } catch { return; }
+
+    if (d.action === "recognition") {
+      const ctx  = d.result.context || "";
+      const tran = d.result.tranContent || "";
+
+      if (d.result.partial) return updatePreview(ctx, tran);
+
+      const now = Date.now();
+      const newLine = now - lastFinal > pauseThreshold;
+      lastFinal = now;
+
+      finalize(ctx, tran, newLine);
     }
-  }
+  };
+}
 
-
-  /* AUDIO PROCESSING */
-  function downsample(buf, inRate, outRate) {
-    const ratio = inRate / outRate;
-    const len = Math.round(buf.length / ratio);
-    const out = new Float32Array(len);
-    let offset = 0;
-
-    for (let i = 0; i < len; i++) {
-      const next = Math.round((i + 1) * ratio);
-      let sum = 0, cnt = 0;
-      for (let j = offset; j < next && j < buf.length; j++) {
-        sum += buf[j]; cnt++;
-      }
-      out[i] = sum / cnt;
-      offset = next;
-    }
-    return out;
-  }
-
-  function f32To16(arr) {
-    const out = new Int16Array(arr.length);
-    for (let i = 0; i < arr.length; i++) {
-      const v = Math.max(-1, Math.min(1, arr[i]));
-      out[i] = v < 0 ? v * 0x8000 : v * 0x7fff;
-    }
-    return out;
-  }
-
-
-  /* START STREAMING */
-  async function start() {
-    inputArea.innerHTML = "";
-    outputArea.innerHTML = "";
-
-    previewInput = previewOutput = null;
-    currentInput = currentOutput = null;
-
-    const proto = location.protocol === "https:" ? "wss:" : "ws:";
-    ws = new WebSocket(
-      `${proto}//${location.host}/ws/translate?from=${selectedFrom}&to=${selectedTo}`
-    );
-
-    ws.onopen = async () => {
-      micIndicator.textContent = "🎤 Listening…";
-      micIndicator.classList.add("mic-live");
-
-      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const rate = audioContext.sampleRate;
-
-      const src = audioContext.createMediaStreamSource(mediaStream);
-      processor = audioContext.createScriptProcessor(1024, 1, 1);
-
-      processor.onaudioprocess = e => {
-        if (!ws || ws.readyState !== 1) return;
-        const input = e.inputBuffer.getChannelData(0);
-        const down = downsample(input, rate, 16000);
-        ws.send(f32To16(down).buffer);
-      };
-
-      src.connect(processor);
-      processor.connect(audioContext.destination);
-
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-    };
-
-
-    ws.onmessage = evt => {
-      let d;
-      try { d = JSON.parse(evt.data); } catch { return; }
-
-      if (d.action === "recognition" && d.result) {
-        const ctx  = d.result.context || "";
-        const tran = d.result.tranContent || "";
-
-        if (d.result.partial) {
-          updatePreview(ctx, tran);
-          return;
-        }
-
-        const now = Date.now();
-        const newLine = now - lastFinal > pauseThreshold;
-        lastFinal = now;
-
-        finalize(ctx, tran, newLine);
-      }
-    };
-  }
-
-
-  /* STOP STREAMING */
-  function stop() {
-    try {
-      if (processor) processor.disconnect();
-      if (audioContext) audioContext.close();
-      if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-      if (ws && ws.readyState === 1) ws.send("END");
-    } catch {}
-
-    micIndicator.textContent = "⏹ Microphone inactive";
+/* STOP / RESUME */
+stopResumeBtn.onclick = () => {
+  if (!isPaused) {
+    isPaused = true;
+    micIndicator.textContent = "⏸ Paused";
     micIndicator.classList.remove("mic-live");
-
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
+    stopResumeBtn.textContent = "Resume";
+  } else {
+    isPaused = false;
+    micIndicator.textContent = "🎤 Listening…";
+    micIndicator.classList.add("mic-live");
+    stopResumeBtn.textContent = "Stop";
   }
+};
 
-  startBtn.onclick = start;
-  stopBtn.onclick = stop;
+/* FINISH */
+finishBtn.onclick = () => {
+  try {
+    if (processor) processor.disconnect();
+    if (audioContext) audioContext.close();
+    if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send("END");
+    ws && ws.close();
+  } catch {}
 
+  micIndicator.textContent = "⏹ Microphone inactive";
+  micIndicator.classList.remove("mic-live");
+
+  startBtn.disabled = false;
+  stopResumeBtn.disabled = true;
+  finishBtn.disabled = true;
+
+  inputArea.innerHTML = "";
+  outputArea.innerHTML = "";
+
+  stopResumeBtn.textContent = "Stop";
+};
+
+/* LANGUAGE CHANGE */
+inputLang.onchange = outputLang.onchange = () => {
+  selectedFrom = inputLang.value;
+  selectedTo = outputLang.value;
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send("END");
+    ws.close();
+    openWS();
+  }
+};
+
+/* SWAP */
+swapBtn.onclick = () => {
+  const t = inputLang.value;
+  inputLang.value = outputLang.value;
+  outputLang.value = t;
+
+  inputLang.onchange();
+};
+
+/* DOWNLOAD */
+downloadBtn.onclick = () => {
+  const text =
+`Input Transcript:
+${inputArea.innerText.trim()}
+
+Translation:
+${outputArea.innerText.trim()}`;
+
+  const blob = new Blob([text], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "transcript.txt";
+  a.click();
+};
+
+/* THEME TOGGLE */
+themeBtn.onclick = () => {
+  document.body.classList.toggle("light-mode");
+  const isLight = document.body.classList.contains("light-mode");
+  themeLabel.textContent = isLight ? "Light" : "Dark";
+  themeIcon.textContent = isLight ? "☀️" : "🌙";
+};
+
+/* START BUTTON */
+startBtn.onclick = start;
 </script>
 
 </body>
