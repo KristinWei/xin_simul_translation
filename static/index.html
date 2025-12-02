@@ -15,8 +15,10 @@
 
       --blue-strong: #3b82f6;
       --blue-light: #60a5fa;
+
       --yellow-strong: #d97706;
       --yellow-light: #fbbf24;
+
       --pink-strong: #ec4899;
       --pink-light: #f472b6;
 
@@ -93,14 +95,18 @@
       margin: 22px 0 20px;
     }
 
-    /* BUTTON CONTROLS */
+    /* BUTTON CONTROLS — always horizontal */
     .control-row {
       display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
       justify-content: center;
       gap: 16px;
       margin-bottom: 16px;
-      flex-wrap: wrap;
+      padding-bottom: 6px;
     }
+    .control-row::-webkit-scrollbar { display: none; }
 
     .primary-btn {
       padding: 14px 36px;
@@ -111,6 +117,8 @@
       border: none;
       color: white;
       cursor: pointer;
+      flex-shrink: 0;
+      white-space: nowrap;
     }
 
     #startBtn      { background: linear-gradient(135deg, var(--blue-strong), var(--blue-light)); }
@@ -122,12 +130,25 @@
       cursor: not-allowed;
     }
 
+    /* MOBILE BUTTON SCALING */
+    @media (max-width: 600px) {
+      .primary-btn {
+        min-width: 110px;
+        padding: 10px 20px;
+        font-size: 15px;
+        border-radius: 14px;
+      }
+      .control-row {
+        gap: 12px;
+        padding-bottom: 4px;
+      }
+    }
+
     /* MIC + DOWNLOAD */
     .mic-block {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 8px;
     }
-
     #downloadBtn {
       margin-top: 6px;
       padding: 8px 22px;
@@ -138,14 +159,13 @@
       cursor: pointer;
     }
 
-    /* PANELS (G1 spacing) */
+    /* PANELS */
     .panels {
-      position: relative; /* allows swap icon overlay */
+      position: relative;
       display: flex;
       gap: 20px;
       flex-wrap: nowrap;
     }
-
     @media (max-width: 750px) {
       .panels {
         flex-direction: column;
@@ -164,6 +184,15 @@
       max-height: 70vh;
     }
 
+    /* MOBILE PANEL HEIGHT */
+    @media (max-width: 600px) {
+      .panel {
+        min-height: 260px;
+        max-height: 45vh;
+        padding: 12px;
+      }
+    }
+
     .panel-title {
       text-align: center;
       font-size: 16px;
@@ -171,14 +200,13 @@
       margin-bottom: 12px;
     }
 
-    /* LANGUAGE SELECT INSIDE PANELS */
+    /* LANGUAGE SELECT */
     .lang-inside {
       text-align: center;
       font-size: 14px;
       color: var(--text-muted);
       margin-bottom: 10px;
     }
-
     select {
       margin-top: 5px;
       padding: 10px 14px;
@@ -214,7 +242,7 @@
 
     @keyframes fadeIn { to { opacity: 1; } }
 
-    /* SWAP ICON — Between Panels */
+    /* SWAP ICON — desktop floating */
     .swap-between-panels {
       position: absolute;
       top: 55%;
@@ -237,10 +265,22 @@
       transition: 0.15s;
       padding: 6px;
     }
-
     .swap-btn:hover {
       transform: scale(1.25);
       opacity: 0.9;
+    }
+
+    /* MOBILE: swap icon becomes inline */
+    @media (max-width: 750px) {
+      .swap-between-panels {
+        position: static;
+        transform: none;
+        margin: 12px 0;
+        order: 1;
+        pointer-events: auto;
+        display: flex;
+        justify-content: center;
+      }
     }
 
   </style>
@@ -266,7 +306,7 @@
 
     <div class="main-title">Realtime Speech Translation</div>
 
-    <!-- CONTROL BUTTONS -->
+    <!-- BUTTONS -->
     <div class="control-row">
       <button id="startBtn" class="primary-btn">Start</button>
       <button id="stopResumeBtn" class="primary-btn" disabled>Stop</button>
@@ -279,12 +319,7 @@
       <button id="downloadBtn">⬇️ Download Transcript</button>
     </div>
 
-    <!-- SWAP ICON BETWEEN PANELS -->
-    <div class="swap-between-panels">
-      <button id="swapBtn" class="swap-btn">⇄</button>
-    </div>
-
-    <!-- PANELS -->
+    <!-- PANELS + SWAP -->
     <div class="panels">
 
       <!-- INPUT PANEL -->
@@ -303,6 +338,11 @@
         </div>
 
         <div id="inputArea" class="content-area"></div>
+      </div>
+
+      <!-- SWAP -->
+      <div class="swap-between-panels">
+        <button id="swapBtn" class="swap-btn">⇄</button>
       </div>
 
       <!-- OUTPUT PANEL -->
@@ -328,7 +368,6 @@
   </div>
 
 <script>
-/* ===== STATE ===== */
 let ws, audioContext, processor, mediaStream;
 let isPaused = false;
 
@@ -346,7 +385,6 @@ let currentOutput = null;
 let lastFinal = Date.now();
 const pauseThreshold = 1200;
 
-/* ELEMENTS */
 const startBtn = document.getElementById("startBtn");
 const stopResumeBtn = document.getElementById("stopResumeBtn");
 const finishBtn = document.getElementById("finishBtn");
@@ -362,7 +400,7 @@ const themeBtn = document.getElementById("themeBtn");
 const themeLabel = document.getElementById("themeLabel");
 const themeIcon = document.getElementById("themeIcon");
 
-/* BLOCK HANDLING */
+/* TEXT BLOCKS */
 function block(area, text, isInput) {
   const div = document.createElement("div");
   div.className = "text-block " + (isInput ? "input-block" : "output-block");
@@ -398,7 +436,7 @@ function finalize(ctx, tran, newLine) {
   }
 }
 
-/* AUDIO PROCESSING */
+/* AUDIO */
 function downsample(buf, inRate, outRate) {
   const ratio = inRate / outRate;
   const len = Math.round(buf.length / ratio);
@@ -469,7 +507,7 @@ async function startAudio() {
   processor.connect(audioContext.destination);
 }
 
-/* WEBSOCKET */
+/* OPEN WS */
 function openWS() {
   const proto = location.protocol === "https:" ? "wss:" : "ws:";
   ws = new WebSocket(
@@ -580,7 +618,6 @@ themeBtn.onclick = () => {
   themeIcon.textContent = isLight ? "☀️" : "🌙";
 };
 
-/* START BUTTON */
 startBtn.onclick = start;
 </script>
 
